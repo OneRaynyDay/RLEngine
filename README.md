@@ -7,3 +7,5 @@ We get back a 4-tuple from openai gyms, which is of the form: `(observation, rew
 And then, we will feed the episodes to a target policy that will run improvements upon it. Simple idea.
 
 Details about implementation is covered in the [blog](https://oneraynyday.github.io/ml/2018/05/24/Reinforcement-Learning-Monte-Carlo/).
+
+Try running the python files in examples. They are examples on how to use the MC model.
