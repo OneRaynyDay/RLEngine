@@ -1,10 +1,10 @@
 """
 General purpose Monte Carlo model for training on-policy methods.
 """
-from copy import deepcopy
+from base import FiniteModel
 import numpy as np
 
-class FiniteMCModel:
+class FiniteMCModel(FiniteModel):
     def __init__(self, state_space, action_space, gamma=1.0, epsilon=0.1):
         """MCModel takes in state_space and action_space (finite) 
         Arguments
@@ -31,53 +31,8 @@ class FiniteMCModel:
         >>> m.choose_action(m.pi, 1)
         0
         """
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.Q = None
-        if isinstance(action_space, int):
-            self.action_space = np.arange(action_space)
-            actions = [0]*action_space
-            # Action representation
-            self._act_rep = "list"
-        else:
-            self.action_space = action_space
-            actions = {k:0 for k in action_space}
-            self._act_rep = "dict"
-        if isinstance(state_space, int):
-            self.state_space = np.arange(state_space)
-            self.Q = [deepcopy(actions) for _ in range(state_space)]
-        else:
-            self.state_space = state_space
-            self.Q = {k:deepcopy(actions) for k in state_space}
-            
-        # Frequency of state/action.
-        self.Ql = deepcopy(self.Q)
-
+        super(FiniteMCModel, self).__init__(state_space, action_space, gamma, epsilon) 
         
-    def pi(self, action, state):
-        """pi(a,s,A,V) := pi(a|s)
-        We take the argmax_a of Q(s,a).
-        q[s] = [q(s,0), q(s,1), ...]
-        """
-        if self._act_rep == "list":
-            if action == np.argmax(self.Q[state]):
-                return 1
-            return 0
-        elif self._act_rep == "dict":
-            if action == max(self.Q[state], key=self.Q[state].get):
-                return 1
-            return 0
-    
-    
-    def b(self, action, state):
-        """b(a,s,A) := b(a|s) 
-        Sometimes you can only use a subset of the action space
-        given the state.
-
-        Randomly selects an action from a uniform distribution.
-        """
-        return self.epsilon/len(self.action_space) + (1-self.epsilon) * self.pi(action, state)
-
     
     def generate_returns(self, ep):
         """Backup on returns per time period in an epoch
@@ -94,18 +49,6 @@ class FiniteMCModel:
         return G
     
     
-    def choose_action(self, policy, state):
-        """Uses specified policy to select an action randomly given the state.
-        Arguments
-        ---------
-        
-        policy: function, can be self.pi, or self.b, or another custom policy.
-        state: observation of the environment.
-        """
-        probs = [policy(a, state) for a in self.action_space]
-        return np.random.choice(self.action_space, p=probs)
-
-    
     def update_Q(self, ep):
         """Performs a action-value update.
         Arguments
@@ -121,7 +64,8 @@ class FiniteMCModel:
             self.Ql[state][action] += 1
             N = self.Ql[state][action]
             self.Q[state][action] = q * N/(N+1) + G[s]/(N+1)
-    
+   
+
     def score(self, env, policy, n_samples=1000):
         """Evaluates a specific policy with regards to the env.
         Arguments
@@ -142,19 +86,8 @@ class FiniteMCModel:
                     rewards.append(cum_rewards)
                     break
         return np.mean(rewards)
-    
+   
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
