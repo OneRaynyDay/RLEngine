@@ -69,7 +69,7 @@ class FiniteSarsaModel(FiniteModel):
 
 class FiniteQLearningModel(FiniteModel):
     def __init__(self, state_space, action_space, gamma=1.0, epsilon=0.1, alpha=0.01):
-        """MCModel takes in state_space and action_space (finite) 
+        """FiniteQLearningModel takes in state_space and action_space (finite) 
         Arguments
         ---------
         
@@ -94,15 +94,21 @@ class FiniteQLearningModel(FiniteModel):
         self.alpha = alpha
        
 
-    def update_Q(self, sarsa):
+    def update_Q(self, sars):
         """Performs a TD(0) action-value update using a single step.
         Arguments
         ---------
         
-        sarsa: (state, action, reward, state, action), an event in an episode.
+        sars: (state, action, reward, state, action) or (state, action, reward, state), 
+            an event in an episode.
+        
+        NOTE: For Q-Learning, we don't actually use the next action, since we argmax.
         """
         # Generate returns, return ratio
-        p_state, p_action, reward, n_state, n_action = sarsa
+        if len(sars) > 4:
+            sars = sars[:4]
+
+        p_state, p_action, reward, n_state = sars
         q = self.Q[p_state][p_action]
         max_q = max(self.Q[n_state].values()) if isinstance(self.Q[n_state], dict) else max(self.Q[n_state])
         self.Q[p_state][p_action] = q + self.alpha * \
