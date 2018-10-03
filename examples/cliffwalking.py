@@ -1,58 +1,37 @@
-"""
-Example in CliffWalking, using the FiniteMCModel.
-"""
-import sys
-sys.path.append("..")
+print("...starting simulations")
+import cliffwalking_mc
+print("...mc finished...")
+import cliffwalking_sarsa
+print("...sarsa finished...")
+import cliffwalking_qlearning
+print("...qlearning finished...")
 
-import gym
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
-from mc import FiniteMCModel as MC
+N = 3000
+def polyfit(list_y, deg=3):
+    poly = np.polyfit(np.arange(len(list_y)), list_y, deg)
+    poly_y = np.poly1d(poly)(np.arange(len(list_y)))
+    return poly_y
 
-env = gym.make("CliffWalking-v0")
+def running_mean(x, N=20):
+    cumsum = np.cumsum(np.insert(x, 0, 0)) 
+    return (cumsum[N:] - cumsum[:-N]) / float(N)
 
-# WARNING: If you try to set eps to a very low value,
-# And you attempt to get the m.score() of m.pi, there may not
-# be guarranteed convergence.
-eps = 10000
-S = 4*12
-A = 4
-START_EPS = 0.7
-m = MC(S, A, epsilon=START_EPS)
-for i in range(1, eps+1):
-    ep = []
-    observation = env.reset()
-    while True:
-        # Choosing behavior policy
-        action = m.choose_action(m.b, observation)
+mc = -np.log(-np.array(cliffwalking_mc.history[:N]))
+sarsa = -np.log(-np.array(cliffwalking_sarsa.history[:N]))
+qlearning = -np.log(-np.array(cliffwalking_qlearning.history[:N]))
 
-        # Run simulation
-        next_observation, reward, done, _ = env.step(action)
-        ep.append((observation, action, reward))
-        observation = next_observation
-        if done:
-            break
-    m.update_Q(ep)
-    # Decaying epsilon, reach optimal policy
-    m.epsilon = START_EPS*(eps-i)/eps
+plt.plot(np.arange(len(mc)), mc, 'o', label='mc', markersize=1, alpha=0.4)
+plt.plot(running_mean(mc), label='mc_interp')
+plt.plot(np.arange(len(sarsa)), sarsa, 'o', label='sarsa', markersize=1, alpha=0.4)
+plt.plot(running_mean(sarsa), label='sarsa_interp')
+plt.plot(np.arange(len(qlearning)), qlearning, 'o', label='qlearning', markersize=1, alpha=0.4)
+plt.plot(running_mean(qlearning), label='qlearning_interp')
 
-print("Final expected returns : {}".format(m.score(env, m.pi, n_samples=10)))
-
-X = 12
-Y = 4
-Fx = np.zeros((Y, X))
-Fy = np.zeros((Y, X))
-for y in range(Y):
-    for x in range(X):
-        amax = np.argmax(m.Q[x+y*12])
-        if amax == 0: # UP
-            Fy[y, x] = -1
-        elif amax == 1: # RIGHT
-            Fx[y, x] = 1
-        elif amax == 2: # DOWN
-            Fy[y, x] = 1
-        elif amax == 3: # LEFT
-            Fx[y, x] = -1
-plt.quiver(Fx,Fy)
-plt.savefig("cliffwalking.png")
+plt.legend()
+plt.xlabel('Episodes')
+plt.ylabel('reward (log scale) per episode')
+plt.title('Comparison of different RL methods reward during training')
+plt.savefig('cliffwalking_learning_plot.png')
